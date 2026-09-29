@@ -1,18 +1,22 @@
 using Microsoft.Data.SqlClient;
 
+// Muodostetaan yhteysosoite SQL Serveriin SqlConnectionStringBuilder-luokan avulla.
 var connectionString = new SqlConnectionStringBuilder
-{
-    DataSource = @"DUUNIKONE\SQLEXPRESS",
-    InitialCatalog = "TaskDB",
-    IntegratedSecurity = true,
-    TrustServerCertificate = true
-}.ConnectionString;
+    {
+        DataSource = @"DUUNIKONE\SQLEXPRESS",
+        InitialCatalog = "TaskDB",
+        IntegratedSecurity = true,
+        TrustServerCertificate = true
+    }.ConnectionString;
 
 try
 {
+    // Yritetään muodostaa yhteys SQL Serveriin käyttäen SqlConnection-luokkaa.
     await using var connection = new SqlConnection(connectionString);
     await connection.OpenAsync();
+    Console.WriteLine("Yhteys SQL Serveriin muodostettu onnistuneesti.");
 
+    // Käyttämällä SQL-kyselyä haetaan kaikki käyttäjät taulusta dbo.Users.
     const string sql = """
         SELECT UserId, FirstName, LastName, Email, CreatedAt
         FROM dbo.Users
@@ -22,6 +26,7 @@ try
     await using var command = new SqlCommand(sql, connection);
     await using var reader = await command.ExecuteReaderAsync();
 
+    // Tulostetaan otsikot ja sarakkeiden nimet konsoliin.
     Console.WriteLine("Käyttäjät");
     Console.WriteLine(new string('-', 100));
     Console.WriteLine($"{"Id",-6} {"Etunimi",-18} {"Sukunimi",-18} {"Sähköposti",-32} {"Luotu"}");
@@ -29,6 +34,8 @@ try
 
     var usersFound = false;
 
+    // Käydään while loopissa läpi kaikki rivit, jotka reader palauttaa.
+    // Jokaisella kierroksella luetaan rivin sarakkeet ja tulostetaan ne konsoliin.
     while (await reader.ReadAsync())
     {
         usersFound = true;
@@ -47,6 +54,7 @@ try
         Console.WriteLine("Käyttäjiä ei löytynyt.");
     }
 }
+// Jos SQL Serveriin yhdistäminen epäonnistuu, käsitellään poikkeus SqlException-luokan avulla.
 catch (SqlException exception)
 {
     Console.Error.WriteLine("Yhteyden muodostaminen SQL Serveriin epäonnistui.");
