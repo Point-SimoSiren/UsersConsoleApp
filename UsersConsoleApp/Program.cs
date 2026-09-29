@@ -24,6 +24,7 @@ try
         Console.WriteLine();
         Console.WriteLine("1. Näytä käyttäjät");
         Console.WriteLine("2. Lisää käyttäjä");
+        Console.WriteLine("3. Poista käyttäjä");
         Console.WriteLine("0. Lopeta");
         Console.Write("Valitse toiminto: ");
 
@@ -35,6 +36,9 @@ try
                 break;
             case "2":
                 await AddUserAsync(connection);
+                break;
+            case "3":
+                await RemoveUserAsync(connection);
                 break;
             case "0":
                 return;
@@ -51,6 +55,8 @@ catch (SqlException exception)
     Console.Error.WriteLine(exception.Message);
     Environment.ExitCode = 1;
 }
+
+// METODI JOKA LISTAA KÄYTTÄJÄT SQL SERVERISTÄ
 
 static async Task ListUsersAsync(SqlConnection connection)
 {
@@ -95,6 +101,44 @@ static async Task ListUsersAsync(SqlConnection connection)
     }
 }
 
+
+
+// METODI JOKA POISTAA KÄYTTÄJÄN TIEDOT SQL SERVERISTÄ
+static async Task RemoveUserAsync(SqlConnection connection)
+{
+    Console.WriteLine();
+    Console.WriteLine("Anna poistettavan käyttäjän nimi");
+    string firstName = ReadRequiredValue("Etunimi: ");
+    var lastName = ReadRequiredValue("Sukunimi: ");
+
+    // Poistetaan käyttäjä dbo.Users-taulusta parametrisoidulla SQL-kyselyllä.
+    // Parametrien käyttäminen estää syötteiden tulkitsemisen osaksi SQL-komentoa.
+    // OUTPUT palauttaa tietokannan uudelle käyttäjälle luoman UserId-tunnuksen.
+    const string sql = """
+        DELETE FROM dbo.Users
+        WHERE FirstName = @FirstName AND LastName = @LastName;
+        """;
+
+    // Liitetään käyttäjän syöttämät arvot SQL-kyselyn parametreihin.
+    await using var command = new SqlCommand(sql, connection);
+    command.Parameters.AddWithValue("@FirstName", firstName);
+    command.Parameters.AddWithValue("@LastName", lastName);
+
+    // ExecuteNonQueryAsync suorittaa kyselyn ja palauttaa siihen vaikuttavien rivien lukumäärän.
+    var rowsAffected = await command.ExecuteNonQueryAsync();
+
+    if (rowsAffected > 0)
+    {
+        Console.WriteLine($"Käyttäjä poistettiin onnistuneesti.");
+    }
+    else
+    {
+        Console.WriteLine("Poistettavaa käyttäjää ei löytynyt.");
+    }
+}
+
+
+// METODI JOKA LISÄÄ KÄYTTÄJÄN TIEDOT SQL SERVERIIN
 static async Task AddUserAsync(SqlConnection connection)
 {
     Console.WriteLine();
